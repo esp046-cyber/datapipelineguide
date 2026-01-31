@@ -1,0 +1,8 @@
+# datapipelineguide
+frontend design skill for best practices on creating high-quality UI
+Here's your mobile app. It has 4 tabs navigated via the bottom nav:
+Pipeline — 5-phase accordion walkthrough (Ingestion → AI Cleansing → Enrichment → Model Orchestration → Output) with live code snippets for each phase. Tools — Recommended 2026 tech stack cards + integration tool pills. Checklist — Interactive tap-to-complete setup tasks with a live progress counter. ROI — Animated metrics bar showing the business impact of AI pipeline automation for SaaS.
+Design details: 1% margins, small compact title, dark AI-native theme with cyan/pink accents, noise grain overlay, staggered fade-in animations, and safe-area padding for mobile notches.
+Beginner Guides — Concept explainers broken down simply. Things like "What is a data pipeline?", "What does AI automation actually do?", "What is a vector store and why does it matter?" — each one written in plain language with a quick analogy so it clicks fast.
+Beginner Tutorials — Hands-on, step-by-step walkthroughs. Like "Build your first ingestion connector in 10 minutes", "Set up a basic AI cleansing job", "Connect your first LLM to a pipeline" — each tutorial has a goal, prerequisites, and numbered steps with code snippets you can copy.
+Beginner Procedural Steps — A single linear "follow the path" flow. This is the most structured one — it's like a guided roadmap where you go Step 1 → Step 2 → Step 3 all the way through, with progress tracking, locked/unlocked states (you unlock the next step by completing the current one), and a completion badge at the end.
