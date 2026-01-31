@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>2026 AI Data Pipeline Setup</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  /* ─── RESET & ROOT ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --m: 1vmin;
+    --bg-0: #0a0c0f;
+    --bg-1: #111418;
+    --bg-2: #181d24;
+    --bg-3: #1e242d;
+    --cyan: #00e5ff;
+    --cyan-dim: rgba(0,229,255,0.12);
+    --cyan-glow: rgba(0,229,255,0.35);
+    --pink: #ff2d78;
+    --pink-dim: rgba(255,45,120,0.12);
+    --amber: #ffb800;
+    --amber-dim: rgba(255,184,0,0.1);
+    --green: #00e676;
+    --green-dim: rgba(0,230,118,0.12);
+    --violet: #a78bfa;
+    --violet-dim: rgba(167,139,250,0.12);
+    --text-1: #f0f2f5;
+    --text-2: #8a939e;
+    --text-3: #4f5a6a;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  html, body {
+    height: 100%; width: 100%;
+    background: var(--bg-0);
+    color: var(--text-1);
+    font-family: 'Syne', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
+
+  /* ─── NOISE OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 999;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ─── APP SHELL ─── */
+  .app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding: var(--m); position: relative; }
+
+  /* ─── HEADER ─── */
+  .header { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--m)*2.5) 0 calc(var(--m)*1.5); border-bottom: 1px solid var(--bg-3); }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .logo-pulse { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--cyan), var(--pink)); display: flex; align-items: center; justify-content: center; animation: logoPulse 3s ease-in-out infinite; }
+  .logo-pulse svg { width: 18px; height: 18px; }
+  @keyframes logoPulse { 0%,100% { box-shadow: 0 0 0 0 var(--cyan-glow); } 50% { box-shadow: 0 0 16px 4px var(--cyan-glow); } }
+  .header-title { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-1); }
+  .header-sub { font-size: 10px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
+  .header-badge { font-size: 9px; font-weight: 700; background: linear-gradient(135deg, var(--cyan-dim), var(--pink-dim)); border: 1px solid rgba(0,229,255,0.25); color: var(--cyan); padding: 4px 8px; border-radius: 20px; letter-spacing: 0.08em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+
+  /* ─── HERO CARD ─── */
+  .hero { margin-top: calc(var(--m)*2); background: var(--bg-1); border: 1px solid var(--bg-3); border-radius: var(--radius); padding: 20px 18px; position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; top: -40px; right: -40px; width: 160px; height: 160px; background: radial-gradient(circle, var(--cyan-dim) 0%, transparent 70%); pointer-events: none; }
+  .hero::after { content: ''; position: absolute; bottom: -30px; left: -30px; width: 120px; height: 120px; background: radial-gradient(circle, var(--pink-dim) 0%, transparent 70%); pointer-events: none; }
+  .hero-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 9.5px; color: var(--cyan); font-family: 'JetBrains Mono', monospace; margin-bottom: 10px; }
+  .hero-tag .dot { width: 6px; height: 6px; background: var(--cyan); border-radius: 50%; animation: blink 2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .hero h1 { font-size: 18px; font-weight: 800; line-height: 1.3; background: linear-gradient(135deg, #fff 30%, var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; position: relative; z-index: 1; }
+  .hero-desc { font-size: 11.5px; color: var(--text-2); margin-top: 8px; line-height: 1.6; position: relative; z-index: 1; }
+  .hero-stats { display: flex; gap: 12px; margin-top: 16px; position: relative; z-index: 1; }
+  .stat { flex: 1; background: var(--bg-2); border-radius: var(--radius-sm); padding: 10px 10px; text-align: center; }
+  .stat-val { font-size: 17px; font-weight: 800; color: var(--cyan); font-family: 'JetBrains Mono', monospace; }
+  .stat-label { font-size: 8.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+  /* ─── SECTION TITLES ─── */
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin-top: 24px; margin-bottom: 12px; padding: 0 2px; }
+  .section-head h2 { font-size: 12px; font-weight: 700; letter-spacing: 0.03em; color: var(--text-1); }
+  .section-head .tag { font-size: 8px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; background: var(--bg-2); padding: 3px 7px; border-radius: 10px; border: 1px solid var(--bg-3); }
+
+  /* ─── PIPELINE FLOW ─── */
+  .pipeline { position: relative; }
+  .pipe-step { background: var(--bg-1); border: 1px solid var(--bg-3); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 4px; position: relative; transition: border-color 0.3s, transform 0.2s; cursor: pointer; }
+  .pipe-step:active { transform: scale(0.985); }
+  .pipe-step.active { border-color: var(--cyan); background: linear-gradient(135deg, var(--bg-1), rgba(0,229,255,0.04)); }
+  .pipe-step:hover { border-color: rgba(0,229,255,0.3); }
+  .pipe-top { display: flex; align-items: center; gap: 12px; }
+  .pipe-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+  .pipe-icon.cyan { background: var(--cyan-dim); }
+  .pipe-icon.pink { background: var(--pink-dim); }
+  .pipe-icon.amber { background: var(--amber-dim); }
+  .pipe-icon.green { background: var(--green-dim); }
+  .pipe-icon.purple { background: rgba(138,100,255,0.12); }
+  .pipe-meta { flex: 1; min-width: 0; }
+  .pipe-num { font-size: 8px; font-family: 'JetBrains Mono', monospace; color: var(--text-3); margin-bottom: 2px; }
+  .pipe-title { font-size: 12.5px; font-weight: 600; color: var(--text-1); }
+  .pipe-chevron { width: 16px; height: 16px; color: var(--text-3); transition: transform 0.3s; }
+  .pipe-step.active .pipe-chevron { transform: rotate(180deg); color: var(--cyan); }
+  .pipe-body { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(.4,0,.2,1), padding 0.3s; }
+  .pipe-step.active .pipe-body { max-height: 400px; padding-top: 14px; }
+  .pipe-body p { font-size: 11px; color: var(--text-2); line-height: 1.65; margin-bottom: 10px; }
+  .pipe-body .code-block { background: var(--bg-0); border: 1px solid var(--bg-3); border-radius: var(--radius-sm); padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #7dd3fc; line-height: 1.7; overflow-x: auto; white-space: pre; }
+  .pipe-body .code-block .comment { color: var(--text-3); }
+  .pipe-body .code-block .keyword { color: var(--pink); }
+  .pipe-body .code-block .string { color: var(--amber); }
+  .pipe-body .code-block .func { color: var(--cyan); }
+
+  /* ─── CONNECTOR ─── */
+  .pipe-connector { display: flex; align-items: center; justify-content: center; height: 18px; }
+  .pipe-connector .line { width: 2px; height: 100%; background: linear-gradient(to bottom, var(--bg-3), transparent); }
+
+  /* ─── CARDS GRID ─── */
+  .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .card { background: var(--bg-1); border: 1px solid var(--bg-3); border-radius: var(--radius); padding: 14px; transition: border-color 0.3s; }
+  .card:hover { border-color: rgba(0,229,255,0.2); }
+  .card-icon { font-size: 20px; margin-bottom: 8px; }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--text-1); margin-bottom: 5px; }
+  .card-text { font-size: 10px; color: var(--text-2); line-height: 1.55; }
+
+  /* ─── CHECKLIST ─── */
+  .checklist { display: flex; flex-direction: column; gap: 6px; }
+  .check-item { display: flex; align-items: flex-start; gap: 10px; background: var(--bg-1); border: 1px solid var(--bg-3); border-radius: var(--radius-sm); padding: 10px 12px; cursor: pointer; transition: border-color 0.25s; }
+  .check-item:active { transform: scale(0.985); }
+  .check-box { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--bg-3); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.25s; margin-top: 1px; background: var(--bg-0); }
+  .check-box.done { background: var(--green); border-color: var(--green); }
+  .check-box.done svg { opacity: 1; }
+  .check-box svg { width: 10px; height: 10px; opacity: 0; transition: opacity 0.2s; }
+  .check-content { flex: 1; }
+  .check-title { font-size: 11px; font-weight: 500; color: var(--text-1); }
+  .check-sub { font-size: 9.5px; color: var(--text-3); margin-top: 2px; }
+  .check-item.done .check-title { color: var(--text-3); text-decoration: line-through; }
+
+  /* ─── TOOL PILLS ─── */
+  .tools-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tool-pill { font-size: 10px; font-family: 'JetBrains Mono', monospace; background: var(--bg-2); border: 1px solid var(--bg-3); color: var(--text-2); padding: 5px 10px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
+  .tool-pill .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  /* ─── ROI METER ─── */
+  .roi-card { background: linear-gradient(135deg, var(--bg-1), var(--bg-2)); border: 1px solid var(--bg-3); border-radius: var(--radius); padding: 18px 16px; margin-top: 8px; position: relative; overflow: hidden; }
+  .roi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--cyan), var(--pink), var(--amber)); }
+  .roi-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .roi-header h3 { font-size: 12px; font-weight: 700; }
+  .roi-pct { font-size: 22px; font-weight: 800; font-family: 'JetBrains Mono', monospace; background: linear-gradient(135deg, var(--cyan), var(--green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .roi-bar-track { height: 6px; background: var(--bg-0); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+  .roi-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--cyan), var(--green)); width: 0; transition: width 1.5s cubic-bezier(.4,0,.2,1); }
+  .roi-metrics { display: flex; gap: 8px; }
+  .roi-metric { flex: 1; text-align: center; background: var(--bg-0); border-radius: var(--radius-sm); padding: 8px 4px; }
+  .roi-metric-val { font-size: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .roi-metric-label { font-size: 8px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+  /* ─── BEGINNER GUIDES ─── */
+  .guide-hero {
+    background: var(--bg-1); border: 1px solid var(--bg-3);
+    border-radius: var(--radius); padding: 16px 17px;
+    margin-top: calc(var(--m)*2); position: relative; overflow: hidden;
+  }
+  .guide-hero::before {
+    content: ''; position: absolute; top: -35px; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 100px;
+    background: radial-gradient(ellipse, var(--violet-dim) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .guide-hero-top { display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
+  .guide-hero-icon {
+    width: 38px; height: 38px; border-radius: 11px;
+    background: linear-gradient(135deg, var(--violet-dim), var(--cyan-dim));
+    border: 1px solid rgba(167,139,250,0.2);
+    display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0;
+  }
+  .guide-hero-text h3 { font-size: 13px; font-weight: 700; color: var(--text-1); }
+  .guide-hero-text p { font-size: 10px; color: var(--text-3); margin-top: 2px; line-height: 1.5; }
+  .guide-progress-track {
+    margin-top: 13px; height: 3px; background: var(--bg-0);
+    border-radius: 2px; overflow: hidden; position: relative; z-index: 1;
+  }
+  .guide-progress-fill {
+    height: 100%; border-radius: 2px;
+    background: linear-gradient(90deg, var(--violet), var(--cyan));
+    width: 0%; transition: width 0.6s cubic-bezier(.4,0,.2,1);
+  }
+  .guide-progress-label {
+    display: flex; justify-content: space-between; margin-top: 5px;
+    position: relative; z-index: 1;
+  }
+  .guide-progress-label span { font-size: 8px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+
+  /* Guide Card (collapsed row) */
+  .guide-card {
+    background: var(--bg-1); border: 1px solid var(--bg-3);
+    border-radius: var(--radius); margin-bottom: 6px;
+    overflow: hidden; transition: border-color 0.3s;
+    cursor: pointer;
+  }
+  .guide-card:active { transform: scale(0.985); }
+  .guide-card:hover { border-color: rgba(167,139,250,0.3); }
+  .guide-card.open { border-color: var(--violet); background: linear-gradient(135deg, var(--bg-1), rgba(167,139,250,0.04)); }
+
+  .guide-row { display: flex; align-items: center; gap: 11px; padding: 13px 14px; }
+  .guide-num {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: var(--bg-2); border: 1px solid var(--bg-3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace; flex-shrink: 0;
+    transition: all 0.3s;
+  }
+  .guide-card.open .guide-num { background: var(--violet-dim); border-color: var(--violet); color: var(--violet); }
+  .guide-card.done .guide-num { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  .guide-row-text { flex: 1; min-width: 0; }
+  .guide-row-title { font-size: 11.5px; font-weight: 600; color: var(--text-1); }
+  .guide-row-sub { font-size: 9px; color: var(--text-3); margin-top: 2px; }
+  .guide-chevron { width: 15px; height: 15px; color: var(--text-3); transition: transform 0.3s, color 0.3s; flex-shrink: 0; }
+  .guide-card.open .guide-chevron { transform: rotate(180deg); color: var(--violet); }
+
+  /* Guide Expanded Body */
+  .guide-body { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(.4,0,.2,1); }
+  .guide-card.open .guide-body { max-height: 600px; }
+  .guide-inner { padding: 0 14px 16px; }
+
+  /* Analogy box */
+  .analogy-box {
+    background: var(--bg-2); border-left: 3px solid var(--violet);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 10px 12px; margin-bottom: 11px;
+  }
+  .analogy-label { font-size: 8px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--violet); font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; font-weight: 600; }
+  .analogy-text { font-size: 10.5px; color: var(--text-2); line-height: 1.6; }
+
+  /* Explanation text */
+  .guide-explain { font-size: 10.5px; color: var(--text-2); line-height: 1.7; margin-bottom: 11px; }
+
+  /* Code block inside guides */
+  .guide-code {
+    background: var(--bg-0); border: 1px solid var(--bg-3);
+    border-radius: var(--radius-sm); padding: 11px 13px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: #7dd3fc; line-height: 1.75; overflow-x: auto;
+    white-space: pre; margin-bottom: 10px;
+  }
+  .guide-code .c { color: var(--text-3); }
+  .guide-code .k { color: var(--pink); }
+  .guide-code .s { color: var(--amber); }
+  .guide-code .f { color: var(--cyan); }
+  .guide-code .v { color: var(--violet); }
+
+  /* Key-value takeaway pills */
+  .guide-takeaway {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-2); border: 1px solid var(--bg-3);
+    border-radius: var(--radius-sm); padding: 8px 10px;
+  }
+  .guide-takeaway-icon { font-size: 14px; flex-shrink: 0; }
+  .guide-takeaway-text { font-size: 9.5px; color: var(--text-2); line-height: 1.5; }
+  .guide-takeaway-text strong { color: var(--text-1); font-weight: 600; }
+
+  /* ─── BOTTOM NAV (5 buttons) ─── */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    background: rgba(10,12,15,0.85);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--bg-3);
+    display: flex; justify-content: space-around;
+    padding: 9px 0 calc(9px + env(safe-area-inset-bottom));
+    z-index: 100;
+  }
+  .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; padding: 3px 6px; }
+  .nav-btn .nav-icon { width: 20px; height: 20px; color: var(--text-3); transition: color 0.25s; }
+  .nav-btn .nav-label { font-size: 7.8px; color: var(--text-3); font-family: 'Syne', sans-serif; font-weight: 500; transition: color 0.25s; white-space: nowrap; }
+  .nav-btn.active .nav-icon, .nav-btn.active .nav-label { color: var(--cyan); }
+
+  /* ─── TAB CONTENT ─── */
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ─── SPACER ─── */
+  .spacer { height: 100px; }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 0; }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeUp 0.45s cubic-bezier(.4,0,.2,1) forwards; opacity: 0; }
+  .delay-1 { animation-delay: 0.08s; }
+  .delay-2 { animation-delay: 0.16s; }
+  .delay-3 { animation-delay: 0.24s; }
+  .delay-4 { animation-delay: 0.32s; }
+  .delay-5 { animation-delay: 0.4s; }
+  .delay-6 { animation-delay: 0.48s; }
+  .delay-7 { animation-delay: 0.56s; }
+  .delay-8 { animation-delay: 0.64s; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ═══ HEADER ═══ -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-pulse">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="header-title">AI Pipeline Studio</div>
+        <div class="header-sub">v2.6.0 — 2026 Edition</div>
+      </div>
+    </div>
+    <div class="header-badge">2026</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       TAB 1 — PIPELINE (original, untouched)
+       ═══════════════════════════════════════════════════════ -->
+  <div class="tab-pane active" id="tab-setup">
+    <div class="hero fade-in">
+      <div class="hero-tag"><span class="dot"></span> Live AI Pipeline Framework</div>
+      <h1>2026 Data Pipeline<br/>Setup for AI Automation</h1>
+      <p class="hero-desc">End-to-end guide to building scalable, AI-native data pipelines for SaaS companies — from ingestion to intelligent orchestration.</p>
+      <div class="hero-stats">
+        <div class="stat"><div class="stat-val">5</div><div class="stat-label">Phases</div></div>
+        <div class="stat"><div class="stat-val">12</div><div class="stat-label">Steps</div></div>
+        <div class="stat"><div class="stat-val">60%</div><div class="stat-label">Faster</div></div>
+      </div>
+    </div>
+
+    <div class="section-head fade-in delay-1"><h2>Pipeline Architecture</h2><span class="tag">5 Phases</span></div>
+
+    <div class="pipeline">
+      <!-- STEP 1 -->
+      <div class="pipe-step active fade-in delay-2" onclick="togglePipe(this)">
+        <div class="pipe-top">
+          <div class="pipe-icon cyan">📥</div>
+          <div class="pipe-meta"><div class="pipe-num">PHASE 01</div><div class="pipe-title">Data Ingestion Layer</div></div>
+          <svg class="pipe-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="pipe-body">
+          <p>Set up real-time and batch ingestion using event-driven APIs. Connect SaaS data sources (CRM, analytics, webhooks) to a unified streaming bus. This is the foundation — everything downstream depends on clean, timely data arriving here.</p>
+          <div class="code-block"><span class="comment"># Ingest config — streaming + batch</span>
+<span class="keyword">from</span> pipeline <span class="keyword">import</span> Ingestor
+
+ingestor = <span class="func">Ingestor</span>(
+  sources=[<span class="string">"webhook"</span>, <span class="string">"api_poll"</span>],
+  stream=<span class="keyword">True</span>,
+  dedupe_window=<span class="string">"60s"</span>
+)</div>
+        </div>
+      </div>
+      <div class="pipe-connector"><div class="line"></div></div>
+      <!-- STEP 2 -->
+      <div class="pipe-step fade-in delay-3" onclick="togglePipe(this)">
+        <div class="pipe-top">
+          <div class="pipe-icon pink">🧹</div>
+          <div class="pipe-meta"><div class="pipe-num">PHASE 02</div><div class="pipe-title">AI-Powered Cleansing</div></div>
+          <svg class="pipe-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="pipe-body">
+          <p>Deploy lightweight ML models to auto-detect and fix anomalies, fill missing fields, and normalize schemas — all in real time. This replaces manual ETL cleaning with intelligent, adaptive transformations.</p>
+          <div class="code-block"><span class="comment"># AI cleansing pipeline</span>
+cleaner = <span class="func">AICleaner</span>(
+  model=<span class="string">"anomaly-v3"</span>,
+  actions=[<span class="string">"fill"</span>, <span class="string">"dedupe"</span>, <span class="string">"normalize"</span>],
+  confidence_threshold=<span class="string">0.85</span>
+)</div>
+        </div>
+      </div>
+      <div class="pipe-connector"><div class="line"></div></div>
+      <!-- STEP 3 -->
+      <div class="pipe-step fade-in delay-4" onclick="togglePipe(this)">
+        <div class="pipe-top">
+          <div class="pipe-icon amber">⚡</div>
+          <div class="pipe-meta"><div class="pipe-num">PHASE 03</div><div class="pipe-title">Transformation & Enrichment</div></div>
+          <svg class="pipe-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="pipe-body">
+          <p>Enrich records with external signals (firmographic data, sentiment scores, predictive churn indicators). Use vector embeddings to add semantic dimensions for downstream AI models.</p>
+          <div class="code-block"><span class="comment"># Enrich with AI scores</span>
+enricher = <span class="func">Enricher</span>(
+  embeddings=<span class="string">"ada-002"</span>,
+  external=[<span class="string">"firmograph"</span>, <span class="string">"sentiment"</span>],
+  churn_model=<span class="keyword">True</span>
+)</div>
+        </div>
+      </div>
+      <div class="pipe-connector"><div class="line"></div></div>
+      <!-- STEP 4 -->
+      <div class="pipe-step fade-in delay-5" onclick="togglePipe(this)">
+        <div class="pipe-top">
+          <div class="pipe-icon green">🧠</div>
+          <div class="pipe-meta"><div class="pipe-num">PHASE 04</div><div class="pipe-title">AI Model Orchestration</div></div>
+          <svg class="pipe-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="pipe-body">
+          <p>Route data to the right AI model automatically based on context. Implement model routing, fallback chains, and cost-optimized inference. This is where your pipeline becomes truly intelligent.</p>
+          <div class="code-block"><span class="comment"># Smart model routing</span>
+router = <span class="func">ModelRouter</span>(
+  primary=<span class="string">"gpt-4o"</span>,
+  fallback=<span class="string">"claude-3.5"</span>,
+  cost_cap=<span class="string">"$0.02/req"</span>,
+  route_by=<span class="string">"complexity"</span>
+)</div>
+        </div>
+      </div>
+      <div class="pipe-connector"><div class="line"></div></div>
+      <!-- STEP 5 -->
+      <div class="pipe-step fade-in delay-6" onclick="togglePipe(this)">
+        <div class="pipe-top">
+          <div class="pipe-icon purple">📊</div>
+          <div class="pipe-meta"><div class="pipe-num">PHASE 05</div><div class="pipe-title">Output & Monitoring</div></div>
+          <svg class="pipe-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="pipe-body">
+          <p>Push processed data to warehouses, trigger downstream automations, and monitor pipeline health via real-time dashboards. Set up AI-generated alerts for drift, latency spikes, and error patterns.</p>
+          <div class="code-block"><span class="comment"># Output sinks + monitoring</span>
+output = <span class="func">Sink</span>(
+  targets=[<span class="string">"bigquery"</span>, <span class="string">"datastore"</span>],
+  alerts=<span class="func">AIMonitor</span>(
+    drift=<span class="keyword">True</span>, latency_p99=<span class="string">"200ms"</span>
+  )
+)</div>
+        </div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       TAB 2 — BEGINNER GUIDES  ← NEW
+       ═══════════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-guides">
+
+    <!-- Mini hero -->
+    <div class="guide-hero fade-in">
+      <div class="guide-hero-top">
+        <div class="guide-hero-icon">📖</div>
+        <div class="guide-hero-text">
+          <h3>Beginner Guides</h3>
+          <p>7 concepts explained simply — with analogies and real code</p>
+        </div>
+      </div>
+      <div class="guide-progress-track"><div class="guide-progress-fill" id="guide-progress-bar"></div></div>
+      <div class="guide-progress-label"><span id="guide-prog-text">0 of 7 read</span><span>Progress</span></div>
+    </div>
+
+    <div class="section-head fade-in delay-1"><h2>Core Concepts</h2><span class="tag">Tap to expand</span></div>
+
+    <!-- ── GUIDE 1: What Is a Data Pipeline? ── -->
+    <div class="guide-card fade-in delay-1" onclick="toggleGuide(this)">
+      <div class="guide-row">
+        <div class="guide-num">01</div>
+        <div class="guide-row-text">
+          <div class="guide-row-title">What Is a Data Pipeline?</div>
+          <div class="guide-row-sub">The foundation concept</div>
+        </div>
+        <svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="guide-body"><div class="guide-inner">
+        <div class="analogy-box">
+          <div class="analogy-label">💡 Analogy</div>
+          <div class="analogy-text">Think of a data pipeline like a water system in your house. Water enters from a source (the well), gets filtered (cleaned), and arrives at your tap (the app) — ready to use. A data pipeline does exactly this, but with information.</div>
+        </div>
+        <p class="guide-explain">A data pipeline is an automated series of steps that moves data from one place to another. It collects raw data (ingestion), cleans it up, transforms it into a useful shape, and delivers it to wherever it's needed — a database, an AI model, or a dashboard. The key idea: data flows in one direction, through defined stages, without manual intervention.</p>
+        <div class="guide-code"><span class="c"># Simple pipeline: Source → Clean → Store</span>
+<span class="k">from</span> pipeline <span class="k">import</span> <span class="f">Pipeline</span>
+
+pipe = <span class="f">Pipeline</span>(
+  name=<span class="s">"my_first_pipeline"</span>,
+  steps=[
+    <span class="s">"ingest"</span>,      <span class="c"># pull data in</span>
+    <span class="s">"clean"</span>,       <span class="c"># fix errors</span>
+    <span class="s">"store"</span>        <span class="c"># save to DB</span>
+  ]
+)
+pipe.<span class="f">run</span>()</div>
+        <div class="guide-takeaway">
+          <span class="guide-takeaway-icon">✅</span>
+          <div class="guide-takeaway-text"><strong>Remember:</strong> A pipeline = automated data movement through defined stages. No manual work needed once it's running.</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── GUIDE 2: What Does AI Automation Actually Do? ── -->
+    <div class="guide-card fade-in delay-2" onclick="toggleGuide(this)">
+      <div class="guide-row">
+        <div class="guide-num">02</div>
+        <div class="guide-row-text">
+          <div class="guide-row-title">What Does AI Automation Do?</div>
+          <div class="guide-row-sub">AI's role in the pipeline</div>
+        </div>
+        <svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="guide-body"><div class="guide-inner">
+        <div class="analogy-box">
+          <div class="analogy-label">💡 Analogy</div>
+          <div class="analogy-text">AI automation is like hiring a smart assistant who never sleeps. Instead of you manually checking every email, sorting it, and replying — the assistant learns your patterns and does it all on its own.</div>
+        </div>
+        <p class="guide-explain">In data pipelines, AI replaces manual decisions. Instead of a developer writing rules like "if email is invalid, delete it," an AI model learns what valid data looks like and makes that call itself. It can detect anomalies, predict outcomes, generate summaries, and route requests — all without human input at runtime.</p>
+        <div class="guide-code"><span class="c"># AI decides what to do with each record</span>
+<span class="k">import</span> ai
+
+<span class="k">for</span> record <span class="k">in</span> data_stream:
+  decision = ai.<span class="f">classify</span>(record)
+  <span class="c"># AI picks: "clean", "flag", or "enrich"</span>
+  <span class="k">if</span> decision == <span class="s">"clean"</span>:
+    record = ai.<span class="f">fix</span>(record)
+  <span class="k">elif</span> decision == <span class="s">"flag"</span>:
+    <span class="f">alert</span>(record)   <span class="c"># needs review</span></div>
+        <div class="guide-takeaway">
+          <span class="guide-takeaway-icon">✅</span>
+          <div class="guide-takeaway-text"><strong>Remember:</strong> AI automation = replacing hard-coded rules with learned decisions. The pipeline gets smarter over time.</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── GUIDE 3: What Is a Vector Store? ── -->
+    <div class="guide-card fade-in delay-3" onclick="toggleGuide(this)">
+      <div class="guide-row">
+        <div class="guide-num">03</div>
+        <div class="guide-row-text">
+          <div class="guide-row-title">What Is a Vector Store?</div>
+          <div class="guide-row-sub">How AI "remembers" meaning</div>
+        </div>
+        <svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="guide-body"><div class="guide-inner">
+        <div class="analogy-box">
+          <div class="analogy-label">💡 Analogy</div>
+          <div class="analogy-text">Imagine a library where books aren't organized by title — they're organized by "feeling." All books about loneliness sit together, even if one is sci-fi and another is poetry. A vector store works the same way: it groups data by meaning, not by keywords.</div>
+        </div>
+        <p class="guide-explain">A vector store converts text (or any data) into numbers called "vectors" that represent meaning. Similar meanings get similar numbers. When your AI needs to find related information — like answering a customer question — it searches the vector store to find the closest match by meaning, not by exact words. This is what powers RAG (Retrieval-Augmented Generation).</p>
+        <div class="guide-code"><span class="c"># Store and search by meaning</span>
+<span class="k">from</span> vectordb <span class="k">import</span> <span class="f">VectorStore</span>
+
+db = <span class="f">VectorStore</span>(name=<span class="s">"knowledge"</span>)
+
+<span class="c"># Save a piece of knowledge</span>
+db.<span class="f">upsert</span>(
+  text=<span class="s">"How to reset password"</span>,
+  id=<span class="s">"doc_42"</span>
+)
+
+<span class="c"># Find similar by meaning, not words</span>
+results = db.<span class="f">search</span>(
+  query=<span class="s">"I forgot my login"</span>,  <span class="c"># matches!</span>
+  top_k=<span class="v">3</span>
+)</div>
+        <div class="guide-takeaway">
+          <span class="guide-takeaway-icon">✅</span>
+          <div class="guide-takeaway-text"><strong>Remember:</strong> Vector stores find data by meaning similarity — not exact keyword matches. Essential for AI search and RAG.</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── GUIDE 4: What Is Streaming vs Batch? ── -->
+    <div class="guide-card fade-in delay-4" onclick="toggleGuide(this)">
+      <div class="guide-row">
+        <div class="guide-num">04</div>
+        <div class="guide-row-text">
+          <div class="guide-row-title">Streaming vs Batch Processing</div>
+          <div class="guide-row-sub">Real-time vs scheduled</div>
+        </div>
+        <svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="guide-body"><div class="guide-inner">
+        <div class="analogy-box">
+          <div class="analogy-label">💡 Analogy</div>
+          <div class="analogy-text">Streaming is like a live TV broadcast — data flows continuously and is processed the instant it arrives. Batch processing is like recording a show and watching it later — data piles up, then gets processed all at once on a schedule.</div>
+        </div>
+        <p class="guide-explain">Streaming processes each data event as it happens — within milliseconds. It's ideal for real-time features like live dashboards, instant fraud detection, or chat. Batch processing collects data over a period (hourly, daily) and processes it in bulk. It's cheaper and simpler, but there's always a delay. Most AI pipelines use both: streaming for urgent data, batch for heavy analysis.</p>
+        <div class="guide-code"><span class="c"># Streaming: process as it arrives</span>
+stream = <span class="f">KafkaStream</span>(topic=<span class="s">"events"</span>)
+
+<span class="k">for</span> event <span class="k">in</span> stream.<span class="f">consume</span>():
+  <span class="f">process_instantly</span>(event)  <span class="c"># ms delay</span>
+
+<span class="c"># Batch: process on schedule</span>
+<span class="k">@</span><span class="f">schedule</span>(<span class="s">"0 * * * *"</span>)       <span class="c"># every hour</span>
+<span class="k">def</span> <span class="f">batch_job</span>():
+  data = <span class="f">fetch_last_hour</span>()
+  <span class="f">process_bulk</span>(data)        <span class="c"># bulk run</span></div>
+        <div class="guide-takeaway">
+          <span class="guide-takeaway-icon">✅</span>
+          <div class="guide-takeaway-text"><strong>Remember:</strong> Streaming = instant processing. Batch = scheduled bulk processing. Use both together for the best of both worlds.</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── GUIDE 5: What Is an LLM Gateway? ── -->
+    <div class="guide-card fade-in delay-5" onclick="toggleGuide(this)">
+      <div class="guide-row">
+        <div class="guide-num">05</div>
+        <div class="guide-row-text">
+          <div class="guide-row-title">What Is an LLM Gateway?</div>
+          <div class="guide-row-sub">The AI traffic controller</div>
+        </div>
+        <svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="guide-body"><div class="guide-inner">
+        <div class="analogy-box">
+          <div class="analogy-label">💡 Analogy</div>
+          <div class="analogy-text">An LLM gateway is like a hotel concierge. You ask for anything — a restaurant, a taxi, a theater ticket. The concierge picks the best option for your needs and budget. You never have to deal with each provider directly.</div>
+        </div>
+        <p class="guide-explain">Your SaaS might use OpenAI, Anthropic, and Google AI — each with different strengths and costs. An LLM gateway sits in front of all of them. It receives your request, decides which AI model is best (based on complexity, cost, or speed), sends it there, and returns the answer. It also handles caching (reusing previous answers), rate limiting, and fallbacks if one model goes down.</p>
+        <div class="guide-code"><span class="c"># Gateway routes to the best model</span>
+<span class="k">from</span> llm_gateway <span class="k">import</span> <span class="f">Gateway</span>
+
+gw = <span class="f">Gateway</span>(
+  models={
+    <span class="s">"fast"</span>:   <span class="s">"haiku-4.5"</span>,     <span class="c"># simple tasks</span>
+    <span class="s">"smart"</span>:  <span class="s">"claude-opus"</span>,   <span class="c"># complex tasks</span>
+    <span class="s">"cheap"</span>:  <span class="s">"gpt-4o-mini"</span>    <span class="c"># bulk tasks</span>
+  },
+  cache=<span class="k">True</span>,
+  fallback=<span class="k">True</span>
+)
+
+reply = gw.<span class="f">ask</span>(<span class="s">"Summarize this..."</span>)</div>
+        <div class="guide-takeaway">
+          <span class="guide-takeaway-icon">✅</span>
+          <div class="guide-takeaway-text"><strong>Remember:</strong> An LLM gateway = one entry point for all AI models. It picks the best model, saves costs, and handles failures for you.</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── GUIDE 6: What Is Schema Evolution? ── -->
+    <div class="guide-card fade-in delay-6" onclick="toggleGuide(this)">
+      <div class="guide-row">
+        <div class="guide-num">06</div>
+        <div class="guide-row-text">
+          <div class="guide-row-title">What Is Schema Evolution?</div>
+          <div class="guide-row-sub">How pipelines adapt to change</div>
+        </div>
+        <svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="guide-body"><div class="guide-inner">
+        <div class="analogy-box">
+          <div class="analogy-label">💡 Analogy</div>
+          <div class="analogy-text">Imagine a filing cabinet where folders suddenly get new categories. Schema evolution is the process of updating the cabinet's structure without throwing away the old files — everything still works, just with new labels added.</div>
+        </div>
+        <p class="guide-explain">Data structures change over time. A user signup form might add a "phone number" field next month. Without schema evolution, your pipeline would crash when it encounters that new field. Schema evolution lets the pipeline detect new or changed fields automatically and adapt — adding new columns, renaming fields, or setting defaults — so data keeps flowing without breaking.</p>
+        <div class="guide-code"><span class="c"># Auto-adapt when structure changes</span>
+<span class="k">from</span> schema <span class="k">import</span> <span class="f">Registry</span>
+
+reg = <span class="f">Registry</span>(
+  strategy=<span class="s">"add_new_fields"</span>,   <span class="c"># safe default</span>
+  defaults={
+    <span class="s">"phone"</span>: <span class="k">None</span>,        <span class="c"># new field? default null</span>
+    <span class="s">"country"</span>: <span class="s">"US"</span>
+  },
+  alert_on_change=<span class="k">True</span>      <span class="c"># notify team</span>
+)
+
+<span class="c"># Pipeline keeps running even if fields change</span>
+reg.<span class="f">validate</span>(incoming_data)</div>
+        <div class="guide-takeaway">
+          <span class="guide-takeaway-icon">✅</span>
+          <div class="guide-takeaway-text"><strong>Remember:</strong> Schema evolution = your pipeline adapts to changing data structures automatically. No manual fixes needed.</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── GUIDE 7: What Is Orchestration? ── -->
+    <div class="guide-card fade-in delay-7" onclick="toggleGuide(this)">
+      <div class="guide-row">
+        <div class="guide-num">07</div>
+        <div class="guide-row-text">
+          <div class="guide-row-title">What Is Pipeline Orchestration?</div>
+          <div class="guide-row-sub">The master scheduler</div>
+        </div>
+        <svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="guide-body"><div class="guide-inner">
+        <div class="analogy-box">
+          <div class="analogy-label">💡 Analogy</div>
+          <div class="analogy-text">Orchestration is like a conductor leading an orchestra. Each instrument (task) plays on its own, but the conductor ensures they all play in the right order, at the right time, in harmony. If one instrument fails, the conductor adjusts the plan.</div>
+        </div>
+        <p class="guide-explain">Your pipeline has many tasks: ingest data, clean it, run an AI model, store results, send notifications. Orchestration is the system that schedules and coordinates all these tasks. It knows which tasks depend on others (you can't clean data before it's ingested), retries failed tasks, and gives you a visual map of what's running, what passed, and what failed.</p>
+        <div class="guide-code"><span class="c"># Orchestrate tasks with dependencies</span>
+<span class="k">from</span> airflow <span class="k">import</span> <span class="f">DAG</span>, <span class="f">task</span>
+
+<span class="k">with</span> <span class="f">DAG</span>(<span class="s">"saas_pipeline"</span>, schedule=<span class="s">"hourly"</span>):
+
+  ingest  = <span class="f">task</span>(<span class="s">"fetch_data"</span>)
+  clean   = <span class="f">task</span>(<span class="s">"clean_data"</span>)
+  ai_run  = <span class="f">task</span>(<span class="s">"run_model"</span>)
+  store   = <span class="f">task</span>(<span class="s">"save_results"</span>)
+
+  <span class="c"># Define the order:</span>
+  ingest >> clean >> ai_run >> store</div>
+        <div class="guide-takeaway">
+          <span class="guide-takeaway-icon">✅</span>
+          <div class="guide-takeaway-text"><strong>Remember:</strong> Orchestration = the brain that schedules, sequences, and monitors every task in your pipeline. Tools: Airflow, Prefect, or Dagster.</div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       TAB 3 — TOOLS (original)
+       ═══════════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-tools">
+    <div class="section-head fade-in" style="margin-top:16px"><h2>Recommended Tech Stack</h2><span class="tag">2026</span></div>
+    <div class="cards-grid">
+      <div class="card fade-in delay-1"><div class="card-icon">🚀</div><div class="card-title">Streaming</div><div class="card-text">Apache Kafka, Confluent Cloud, or Redpanda for high-throughput event streaming at scale.</div></div>
+      <div class="card fade-in delay-2"><div class="card-icon">🧬</div><div class="card-title">Orchestration</div><div class="card-text">Apache Airflow 2.x or Prefect for DAG-based pipeline scheduling and retry logic.</div></div>
+      <div class="card fade-in delay-3"><div class="card-icon">🗄️</div><div class="card-title">Data Warehouse</div><div class="card-text">Snowflake, BigQuery, or Databricks for analytical workloads and AI feature stores.</div></div>
+      <div class="card fade-in delay-4"><div class="card-icon">🔮</div><div class="card-title">AI Models</div><div class="card-text">LLM gateway layer with routing, caching, and cost optimization across providers.</div></div>
+      <div class="card fade-in delay-5"><div class="card-icon">📦</div><div class="card-title">Vector Store</div><div class="card-text">Pinecone, Weaviate, or pgvector for semantic search and RAG pipelines.</div></div>
+      <div class="card fade-in delay-6"><div class="card-icon">🛡️</div><div class="card-title">Security</div><div class="card-text">SOC2 compliance, field-level encryption, and PII auto-detection built into the pipeline.</div></div>
+    </div>
+    <div class="section-head fade-in" style="margin-top:22px"><h2>Integration Tools</h2><span class="tag">Popular</span></div>
+    <div class="tools-wrap fade-in">
+      <div class="tool-pill"><span class="pill-dot" style="background:var(--cyan)"></span>Kafka</div>
+      <div class="tool-pill"><span class="pill-dot" style="background:var(--pink)"></span>dbt</div>
+      <div class="tool-pill"><span class="pill-dot" style="background:var(--amber)"></span>Airflow</div>
+      <div class="tool-pill"><span class="pill-dot" style="background:var(--green)"></span>Prefect</div>
+      <div class="tool-pill"><span class="pill-dot" style="background:#a78bfa"></span>LangChain</div>
+      <div class="tool-pill"><span class="pill-dot" style="background:#34d399"></span>Snowflake</div>
+      <div class="tool-pill"><span class="pill-dot" style="background:#60a5fa"></span>Pinecone</div>
+      <div class="tool-pill"><span class="pill-dot" style="background:#fb923c"></span>OpenAI</div>
+      <div class="tool-pill"><span class="pill-dot" style="background:var(--cyan)"></span>Anthropic</div>
+      <div class="tool-pill"><span class="pill-dot" style="background:#f472b6"></span>Fivetran</div>
+      <div class="tool-pill"><span class="pill-dot" style="background:#22d3ee"></span>Databricks</div>
+      <div class="tool-pill"><span class="pill-dot" style="background:#a3e635"></span>FastAPI</div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       TAB 4 — CHECKLIST (original)
+       ═══════════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-check">
+    <div class="section-head fade-in" style="margin-top:16px"><h2>Setup Checklist</h2><span class="tag" id="check-progress">0 / 8</span></div>
+    <div class="checklist" id="checklist">
+      <div class="check-item fade-in delay-1" onclick="toggleCheck(this)">
+        <div class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5"><path d="M2 6l3 3 5-5"/></svg></div>
+        <div class="check-content"><div class="check-title">Define data sources & schemas</div><div class="check-sub">Map all SaaS integrations and field structures</div></div>
+      </div>
+      <div class="check-item fade-in delay-2" onclick="toggleCheck(this)">
+        <div class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5"><path d="M2 6l3 3 5-5"/></svg></div>
+        <div class="check-content"><div class="check-title">Set up streaming infrastructure</div><div class="check-sub">Deploy Kafka or equivalent event bus</div></div>
+      </div>
+      <div class="check-item fade-in delay-3" onclick="toggleCheck(this)">
+        <div class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5"><path d="M2 6l3 3 5-5"/></svg></div>
+        <div class="check-content"><div class="check-title">Train AI cleansing models</div><div class="check-sub">Baseline anomaly detection on historical data</div></div>
+      </div>
+      <div class="check-item fade-in delay-4" onclick="toggleCheck(this)">
+        <div class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5"><path d="M2 6l3 3 5-5"/></svg></div>
+        <div class="check-content"><div class="check-title">Configure enrichment APIs</div><div class="check-sub">Connect external data providers & embed vectors</div></div>
+      </div>
+      <div class="check-item fade-in delay-5" onclick="toggleCheck(this)">
+        <div class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5"><path d="M2 6l3 3 5-5"/></svg></div>
+        <div class="check-content"><div class="check-title">Build model routing layer</div><div class="check-sub">Implement cost-aware AI model selection</div></div>
+      </div>
+      <div class="check-item fade-in delay-6" onclick="toggleCheck(this)">
+        <div class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5"><path d="M2 6l3 3 5-5"/></svg></div>
+        <div class="check-content"><div class="check-title">Deploy monitoring dashboards</div><div class="check-sub">Real-time pipeline health & drift alerts</div></div>
+      </div>
+      <div class="check-item fade-in" style="animation-delay:0.52s" onclick="toggleCheck(this)">
+        <div class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5"><path d="M2 6l3 3 5-5"/></svg></div>
+        <div class="check-content"><div class="check-title">Run end-to-end load test</div><div class="check-sub">Validate throughput at 10x expected volume</div></div>
+      </div>
+      <div class="check-item fade-in" style="animation-delay:0.6s" onclick="toggleCheck(this)">
+        <div class="check-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5"><path d="M2 6l3 3 5-5"/></svg></div>
+        <div class="check-content"><div class="check-title">Security audit & SOC2 review</div><div class="check-sub">PII detection, encryption, access controls</div></div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       TAB 5 — ROI (original)
+       ═══════════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-roi">
+    <div class="section-head fade-in" style="margin-top:16px"><h2>ROI & Impact</h2><span class="tag">SaaS Metrics</span></div>
+    <div class="roi-card fade-in delay-1" id="roi-card">
+      <div class="roi-header"><h3>Automation ROI</h3><div class="roi-pct">340%</div></div>
+      <div class="roi-bar-track"><div class="roi-bar-fill" id="roi-bar" style="width:0"></div></div>
+      <div class="roi-metrics">
+        <div class="roi-metric"><div class="roi-metric-val" style="color:var(--cyan)">68%</div><div class="roi-metric-label">Cost Cut</div></div>
+        <div class="roi-metric"><div class="roi-metric-val" style="color:var(--green)">4.2x</div><div class="roi-metric-label">Throughput</div></div>
+        <div class="roi-metric"><div class="roi-metric-val" style="color:var(--amber)">12hr</div><div class="roi-metric-label">Deploy</div></div>
+      </div>
+    </div>
+    <div class="section-head fade-in delay-2" style="margin-top:22px"><h2>Why AI Pipelines for SaaS</h2><span class="tag">Key Benefits</span></div>
+    <div class="cards-grid">
+      <div class="card fade-in delay-3"><div class="card-icon">⚡</div><div class="card-title">Auto-Scaling</div><div class="card-text">Pipelines self-scale with traffic — no manual capacity planning needed for growing SaaS.</div></div>
+      <div class="card fade-in delay-4"><div class="card-icon">🎯</div><div class="card-title">Predictive Ops</div><div class="card-text">AI predicts failures before they happen, preventing downtime and data loss.</div></div>
+      <div class="card fade-in delay-5"><div class="card-icon">💰</div><div class="card-title">Cost Optimize</div><div class="card-text">Intelligent routing reduces LLM spend by 60%+ through caching and model tiering.</div></div>
+      <div class="card fade-in delay-6"><div class="card-icon">🔄</div><div class="card-title">Self-Healing</div><div class="card-text">Automatic retry, schema evolution, and fallback logic keeps pipelines resilient.</div></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ═══ BOTTOM NAV (5 buttons) ═══ -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="switchTab('setup', this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    <span class="nav-label">Pipeline</span>
+  </button>
+  <button class="nav-btn" onclick="switchTab('guides', this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-1H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-1h7z"/></svg>
+    <span class="nav-label">Guides</span>
+  </button>
+  <button class="nav-btn" onclick="switchTab('tools', this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    <span class="nav-label">Tools</span>
+  </button>
+  <button class="nav-btn" onclick="switchTab('check', this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    <span class="nav-label">Check</span>
+  </button>
+  <button class="nav-btn" onclick="switchTab('roi', this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span class="nav-label">ROI</span>
+  </button>
+</nav>
+
+<script>
+// ─── TAB SWITCHING ───
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+
+  if (id === 'roi') {
+    setTimeout(() => {
+      const bar = document.getElementById('roi-bar');
+      if (bar) bar.style.width = '78%';
+    }, 150);
+  }
+
+  // Re-trigger fade animations on the new pane
+  const pane = document.getElementById('tab-' + id);
+  pane.querySelectorAll('.fade-in').forEach(el => {
+    el.style.animation = 'none';
+    void el.offsetHeight;
+    el.style.animation = '';
+  });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── PIPELINE ACCORDION ───
+function togglePipe(el) {
+  const wasActive = el.classList.contains('active');
+  document.querySelectorAll('.pipe-step').forEach(s => s.classList.remove('active'));
+  if (!wasActive) el.classList.add('active');
+}
+
+// ─── CHECKLIST ───
+function toggleCheck(item) {
+  item.classList.toggle('done');
+  updateCheckProgress();
+}
+function updateCheckProgress() {
+  const done = document.querySelectorAll('.check-item.done').length;
+  document.getElementById('check-progress').textContent = done + ' / 8';
+}
+
+// ─── BEGINNER GUIDES ───
+// Track which guides have been opened (read)
+const guidesRead = new Set();
+
+function toggleGuide(card) {
+  const wasOpen = card.classList.contains('open');
+
+  // Close all guides first (accordion)
+  document.querySelectorAll('.guide-card').forEach(c => c.classList.remove('open'));
+
+  // Open this one if it wasn't already open
+  if (!wasOpen) {
+    card.classList.add('open');
+
+    // Mark as read using the guide number text
+    const numEl = card.querySelector('.guide-num');
+    if (numEl) {
+      const num = numEl.textContent.trim();
+      if (!guidesRead.has(num)) {
+        guidesRead.add(num);
+        card.classList.add('done'); // green number
+        updateGuideProgress();
+      }
+    }
+  }
+}
+
+function updateGuideProgress() {
+  const total = 7;
+  const read = guidesRead.size;
+  const pct = (read / total) * 100;
+
+  document.getElementById('guide-progress-bar').style.width = pct + '%';
+  document.getElementById('guide-prog-text').textContent = read + ' of ' + total + ' read';
+}
+</script>
+</body>
+</html>
